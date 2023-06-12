@@ -47,7 +47,7 @@ public class DatabaseConnection {
             }
             return preparedStatement.executeQuery();
         } catch (SQLException sqlException) {
-            return null;
+           throw new IllegalArgumentException();
         } finally {
             try {
                 connection.close();
@@ -62,22 +62,35 @@ public class DatabaseConnection {
      */
     public static void createTablesIfNotExist() {
         try {
-            if (executePreparedStatement("SELECT * FROM VEHICLE") == null) {
-                executeStatement("CREATE TABLE VEHICLE (id bigint PRIMARY KEY, creator text NOT NULL, creationdate bigint NOT NULL, name text NOT NULL, enginepower double precision NOT NULL, type text NOT NULL, capacity bigint NOT NULL, fuelconsumption bigint NOT NULL, x double precision NOT NULL, y bigint NOT NULL)");
-            }
-            if (executePreparedStatement("SELECT * FROM USERS") == null) {
-                executeStatement("CREATE TABLE USERS (login text  PRIMARY KEY, hash text NOT NULL, salt text NOT NULL)");
-            }
-            if (executePreparedStatement("SELECT * FROM id") == null) {
+            executePreparedStatement("SELECT * FROM VEHICLE").close();
+        } catch (SQLException e) {
+            System.out.println(e.getMessage());
+        } catch (IllegalArgumentException e) {
+            executeStatement("CREATE TABLE VEHICLE (id bigint PRIMARY KEY, creator text NOT NULL, creationdate bigint NOT NULL, name text NOT NULL, enginepower double precision NOT NULL, type text NOT NULL, capacity bigint NOT NULL, fuelconsumption bigint NOT NULL, x double precision NOT NULL, y bigint NOT NULL)");
+        }
+        try {
+            executePreparedStatement("SELECT * FROM USERS").close();
+        } catch (SQLException e) {
+            System.out.println(e.getMessage());
+        } catch (IllegalArgumentException e) {
+            executeStatement("CREATE TABLE USERS (login text  PRIMARY KEY, hash text NOT NULL, salt text NOT NULL)");
+        }
+        try {
+            executePreparedStatement("SELECT * FROM id").close();
+        } catch (SQLException e) {
+            System.out.println(e.getMessage());
+        } catch (IllegalArgumentException e) {
+            try {
                 ResultSet resultSet = executePreparedStatement("SELECT id FROM VEHICLE");
                 long maxId = 1;
                 while (Objects.requireNonNull(resultSet).next()) {
                     maxId = Long.max(resultSet.getLong(1), maxId);
                 }
                 executeStatement("CREATE SEQUENCE id START " + maxId);
+                resultSet.close();
+            } catch (SQLException exception) {
+                System.out.println(e.getMessage());
             }
-        } catch (SQLException | NullPointerException e) {
-            System.out.println(e.getMessage());
         }
     }
 }
